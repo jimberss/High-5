@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>HighFive</id>
+    <version>1.0.0</version> <!-- Update this for each new release -->
+    <title>High5</title>
+    <authors>Rowan Kirk</authors>
+	<icon>bin\Release\img.ico</icon>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>i love to high five my friends</description>
+    <releaseNotes>Initial release.</releaseNotes>
+  </metadata>
+  <files>
+    <!-- Main application binaries -->
+    <file src="bin\Release\*.*" target="lib\net472" />
+  </files>
+</package>

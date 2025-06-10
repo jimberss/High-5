@@ -1,14 +1,10 @@
 ﻿using Microsoft.VisualBasic;
+using Squirrel;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net.Sockets;
-using System.Runtime.InteropServices.ComTypes;
-using System.Security.Policy;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,8 +13,6 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
-
 
 namespace High_5
 {
@@ -29,6 +23,7 @@ namespace High_5
     {
         string username;
         public static bool showplayers = false;
+        public static bool downlow = false;
         public static Image img = new Image();
         public static Image img2 = new Image();
         public static TextBlock text = new TextBlock();
@@ -40,10 +35,13 @@ namespace High_5
         static string clickedUser = "";
         static List<string> onlineusers = new List<string>();
         MediaPlayer player = new MediaPlayer();
+        int skin = 0;
 
         public MainWindow()
         {
             InitializeComponent();
+            CheckForUpdates();
+
             string filePath = System.IO.Path.Combine(folderPath, "user.txt");
 
             if (File.Exists(filePath))
@@ -58,20 +56,35 @@ namespace High_5
                 username = Interaction.InputBox("Username:", "Enter Username");
                 File.WriteAllText(filePath, username);
             }
+
             player.Open(new Uri(System.IO.Path.Combine(folderPath, "high5.wav")));
             LoadHUD();
             ConnectToServer();
         }
 
+        private async void CheckForUpdates()
+        {
+            try
+            {
+                using (var mgr = await UpdateManager.GitHubUpdateManager("https://github.com/jimberss/High-5"))
+                {
+                    await mgr.UpdateApp();
+                }
+            }
+            catch
+            {
+
+            }
+        }
         public void LoadHUD()
         {
-            img.Source = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "img.png")));
+            img.Source = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "skin1.png")));
+            img.RenderTransformOrigin = new Point(0.5, 0.5);
             GameCanvas.Children.Add(img);
             Canvas.SetLeft(img, 0);
             Canvas.SetTop(img, 0);
-
-
-            img2.Source = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "img.png")));
+    
+            img2.Source = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "skin1.png")));
             GameCanvas.Children.Add(img2);
             Canvas.SetRight(img2, 0);
             Canvas.SetTop(img2, 0);
@@ -93,6 +106,25 @@ namespace High_5
                     client = new TcpClient();
                     await client.ConnectAsync("81.96.82.81", 25565);
                     NetworkStream stream = client.GetStream();
+
+                    //Check username is unique
+                    await RequestPlayers();
+                    string newusername = "";
+                    string filePath = System.IO.Path.Combine(folderPath, "user.txt");
+                    foreach (var x in onlineusers)
+                    {
+                        if (x == username)
+                        {
+                            newusername = Interaction.InputBox("Username taken. Please enter a new username:", "Enter Username");
+
+                            while (onlineusers.Contains(newusername))
+                            {
+                                newusername = Interaction.InputBox("Username taken. Please enter a new username:", "Enter Username");
+                            }
+                            username = newusername;
+                        }
+                    }
+                    File.WriteAllText(filePath, username);
                     byte[] message = Encoding.UTF8.GetBytes(username);
                     await stream.WriteAsync(message, 0, message.Length);
                     _ = Task.Run(() => ListenForRequests());
@@ -121,7 +153,8 @@ namespace High_5
                             string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                             if (response.StartsWith("*"))
                             {
-                                string requestingUser = response.Substring(1);
+                                string requestingUser = response.Substring(3);
+                                
                                 await System.Windows.Application.Current.Dispatcher.Invoke(async () =>
                                 {
                                     DialogResult result = System.Windows.Forms.MessageBox.Show(
@@ -149,6 +182,15 @@ namespace High_5
                             {
                                 if (response == "Yes")
                                 {
+                                    int skinnum = (int)response[1];
+                                    string downlow = response[2].ToString();
+                                    string skinname = "skin" + skin.ToString();
+
+                                    await SwitchOtherSkin(skinname);
+                                    if(downlow == "Y")
+                                    {
+                                        await FlipOtherSkin();
+                                    }
                                     _ = HighFive();
                                 }
                                 else
@@ -180,6 +222,24 @@ namespace High_5
             }
         }
 
+        private async Task FlipOtherSkin()
+        {
+            var currentTransform = img2.RenderTransform as ScaleTransform;
+
+            if (currentTransform == null)
+            {
+                img2.RenderTransform = new ScaleTransform(1, 1);
+                currentTransform = (ScaleTransform)img2.RenderTransform;
+            }
+
+            currentTransform.ScaleY *= -1;
+        }
+
+        private async Task SwitchOtherSkin(string skinname)
+        {
+            img2.Source = new BitmapImage(new Uri(System.IO.Path.Combine(folderPath, "skins", skinname + ".png")));
+        }
+
 
         private async void GameWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
@@ -194,6 +254,18 @@ namespace High_5
                     text.Inlines.Clear();
                 }
                 showplayers = !showplayers;
+            }
+            else if(e.Key == Key.L)
+            {
+                if (!downlow)
+                {
+                    img.RenderTransform = new ScaleTransform(1, -1);
+                }
+                else
+                {
+                    img.RenderTransform = new ScaleTransform(1, 1);
+                }
+                downlow = !downlow;
             }
         }
 
@@ -262,7 +334,16 @@ namespace High_5
             try
             {
                 NetworkStream stream = client.GetStream();
-                byte[] message = Encoding.UTF8.GetBytes(clickedUser);
+                string dl = "";
+                if (downlow)
+                {
+                    dl = "Y";
+                }
+                else
+                {
+                    dl = "N";
+                }
+                    byte[] message = Encoding.UTF8.GetBytes(skin + dl + clickedUser);
                 await stream.WriteAsync(message, 0, message.Length);
             }
             catch
@@ -295,7 +376,7 @@ namespace High_5
             await Task.Delay(300);
             while (left + img.ActualWidth < center + 10 && right > center - 10)
             {
-                await Task.Delay(16); // ~60 FPS
+                await Task.Delay(16);
 
                 speed += acceleration;
 
@@ -307,9 +388,11 @@ namespace High_5
             }
             await Task.Delay(1000);
             player.Stop();
-            // Reset positions
+
             Canvas.SetLeft(img, 0);
             Canvas.SetLeft(img2, GameCanvas.ActualWidth - img2.ActualWidth);
+            await FlipOtherSkin();
+            await SwitchOtherSkin("skin1");
         }
 
 

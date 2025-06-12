@@ -104,7 +104,7 @@ namespace High_5
                 try
                 {
                     client = new TcpClient();
-                    await client.ConnectAsync("81.96.82.81", 25565);
+                    await client.ConnectAsync("ip", port);
                     NetworkStream stream = client.GetStream();
 
                     //Check username is unique

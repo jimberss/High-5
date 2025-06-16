@@ -4,8 +4,8 @@
 <h3 align="center">The one and only way to virtually high five anybody in the world! 🌍🙏<br>Utilising a variety of exquisite handcrafted skins 🎨, high fiving has truly never been easier!</h3>
 
 <h3 align="left">🚀 Getting started:</h3>
-<h4 align="left">1️⃣ Download the latest release 💿</h4>
-<h4 align="left">2️⃣ Run the Setup.exe file 💻</h4>
+<h4 align="left">1️⃣ Head to the latest <a href="https://github.com/jimberss/High-5/releases/" target="_blank">release</a> 💿</h4>
+<h4 align="left">2️⃣ Download and run Setup.exe 💻</h4>
 <h4 align="left">3️⃣ Enter your username ⌨️</h4>
 <h4 align="left">4️⃣ High Five 🙏</h4>
 
